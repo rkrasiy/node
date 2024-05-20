@@ -1,14 +1,60 @@
+require('colors');
+const { guardarDB, leerDB } = require('./helpers/guardatArchivo');
+const { inquirerMenu, pausa, leerInput, listadoTareasBorrar, confirmar, mostrarListadoCheckList} = require('./helpers/inquirer');
+const Tareas = require('./models/tareas');
 
-const { crearArchivo } = require('./helpers/multiplicar');
-const argv = require('./config/yargs');
-const colors = require('colors');
+const main = async () => {
+  let opt = '';
+  const tareas = new Tareas();
+  const store = leerDB();
 
-console.clear();
+  if(store){
+    tareas.cargarTareeaFromArray(store);
+  }
+
+  // await pausa();
+
+  do {
+
+    opt = await inquirerMenu();
+
+    switch(opt){
+      case '1':
+        const desc = await leerInput('Descipciòn:');
+        tareas.crearTarea( desc );
+        break;
+      case '2':
+        tareas.listadoCompleto()
+        break;
+      case '3':
+        tareas.listarPendientesCompletadas()
+        break;
+      case '4':
+        tareas.listarPendientesCompletadas(false);
+        break;
+      case '5':
+        const ids = await mostrarListadoCheckList(tareas.listadoArr);
+        tareas.toggleCompletadas(ids)
+        break;
+      case '6':
+        const id = await listadoTareasBorrar(tareas.listadoArr);
+        if(id !== '0'){
+          const ok = await confirmar('¿Está seguro?');
+          if(ok){
+  
+            tareas.borrarTarea(id);
+            console.log('Tarea borrada');
+          }
+        }
+    
+        break;
+    }
 
 
+    guardarDB( tareas.listadoArr );
 
-console.dir(argv)
+    await pausa();
+  } while( opt !== '0');
+}
 
-crearArchivo(argv.b, argv.l, argv.h)
-  .then( nombreArchivo => console.log(nombreArchivo.rainbow, 'creado'))
-  .catch( err => console.log(err));
+main();
